@@ -1,0 +1,13 @@
+{
+    "name": "Push Demo",  
+    "short_name": "Push Demo",  
+    "icons": [{  
+        "src": "notifications.png",  
+        "sizes": "192x192",
+        "type": "image/png"
+    }],  
+    
+    "start_url": "/",  
+    "display": "standalone",  
+    "gcm_sender_id": "1091326797634"
+}
