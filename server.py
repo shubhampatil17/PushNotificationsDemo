@@ -17,6 +17,7 @@ def initialiseTemplate():
 @app.route('/sendendpoint', methods=['POST'])
 def processSubscriptionRequest():
 	data = request.json
+        print "Data : ", data
 	endpoint = data['Endpoint']
     
 	if endpoint.startswith('https://android.googleapis.com/gcm/send'):
@@ -43,7 +44,6 @@ def processGCMRequest():
     print response
     
     return jsonify({"Response":"abc"})
-
 
 
 if __name__=="__main__":
