@@ -1,11 +1,12 @@
 from flask import Flask, render_template, request, jsonify
-
+from flask.ext.mongoengine import MongoEngine
 import requests
 import urllib3
 import json
 from gcm import GCM
 
 app=Flask(__name__,template_folder="common",static_folder="common",static_url_path="")
+db = MongoEngine(app)
 
 regIdList=[]
 
