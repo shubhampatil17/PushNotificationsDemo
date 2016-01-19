@@ -111,6 +111,9 @@ function subscribe(){
 		    pushButton.textContent = 'Enable push notifications';
 
 		    pushEnabled = false;
+
+		    sendUnsubscriptionToServer(pushSubscription);
+
 		}).catch(function(e){
 
 		    console.log('Unsubscription error:',e);
@@ -142,6 +145,25 @@ function sendSubscriptionToServer(subscription){
         error:function(error){
             return false;
         }
+    });
+}
+
+function sendUnsubscriptionToServer(subscription){
+    $.ajax({
+	url: '/unsubscribe',
+	data: JSON.stringify({"Endpoint": subscription.endpoint}),
+	type: 'POST',
+	dataType: 'json',
+	contentType: 'application/json',
+	accepts: 'application/json',
+
+	success:function(response){
+	    return true;
+	},
+
+	error:function(error){
+	    return false;
+	}
     });
 }
 
