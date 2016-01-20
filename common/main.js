@@ -25,6 +25,8 @@ window.addEventListener('load',function(){
     }
 });
 
+
+
 function initialiseState(){
     
     if(!('showNotification' in ServiceWorkerRegistration.prototype )){
@@ -49,7 +51,7 @@ function initialiseState(){
                 return;
             }
             
-           //sendSubscriptionToServer(subscription);
+            //sendSubscriptionToServer(subscription);
             
             pushButton.textContent = 'Disable Push Notifications';
             pushEnabled = true;
@@ -60,7 +62,7 @@ function initialiseState(){
 }
 
 function subscribe(){
-    console.log('In subscribe');
+    
     var pushButton = document.querySelector('#push-Button');
 
     //Array holding the requested updates
@@ -87,9 +89,10 @@ function subscribe(){
 	updates.push('traditionals');
     
     pushButton.disabled = true;
-        navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
-        serviceWorkerRegistration.pushManager.subscribe({userVisibleOnly:true}).then(function(subscription){
-                        
+           
+navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
+       
+serviceWorkerRegistration.pushManager.subscribe({userVisibleOnly:true}).then(function(subscription){
             pushEnabled = true;
             pushButton.textContent = 'Disable Push Notifications';
             pushButton.disabled = false;
@@ -99,26 +102,25 @@ function subscribe(){
             return sendSubscriptionToServer(subscription, updates);
             
         }).catch(function(err){
-		if(Notification.permission === 'denied'){
-		    console.warn('Permission denied ');
-		    pushButton.disabled = true;
-		}else{
-		    console.error('Unable to push notification',err);
-		    pushButton.disabled = false;
-		    pushButton.textContent = 'Enable Push Messages';
-		}
-	    });
-	});
+            if(Notification.permission === 'denied'){
+                console.warn('Permission denied ');
+                pushButton.disabled = true;
+            }else{
+                console.error('Unable to push notification',err);
+                pushButton.disabled = false;
+                pushButton.textContent = 'Enable Push Messages';
+            }
+        });
+    });
+}
 
-    }
 
-
-    function unsubscribe(){
-	console.log('In unsubscribe');
+function unsubscribe(){
+    console.log('In unsubscribe');
 	var pushButton = document.querySelector('#push-Button');
 	pushButton.disabled = true;
 
-	navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
+    navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
 	    serviceWorkerRegistration.pushManager.getSubscription().then(function(pushSubscription){
 		if(!pushSubscription){
 		    pushEnabled = false;
@@ -143,7 +145,7 @@ function subscribe(){
 
 		    pushButton.disabled = false;
 		    pushButton.textContent = 'Enable push notifications';
-            });
+        });
             
         }).catch(function(e){
            console.error('Error thrown while unsubscribing from push messaging');
@@ -151,8 +153,7 @@ function subscribe(){
     });
 }
 
-function sendSubscriptionToServer(subscription, updates){
-    
+function sendSubscriptionToServer(subscription){
     $.ajax({
         url: '/sendendpoint',
         data: JSON.stringify({"Endpoint":subscription.endpoint, "Objects":updates}),
@@ -194,12 +195,8 @@ function sendGCMRequest(){
     
     $.ajax({
         url: '/sendgcm',
-//      data: JSON.stringify({"Endpoint":subscription.endpoint}),
         type:'POST',
-//      dataType:'json',
-//      contentType:'application/json',
-//      accepts:'application/json',
-        
+
         success:function(response){
             return true;
         },

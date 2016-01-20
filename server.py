@@ -20,25 +20,28 @@ complete_updates = ['shoes', 'shirts','tees', 'trousers', 'jeans', 'traditionals
 
 @app.route('/')
 def initialiseTemplate():
-	#return app.send_static_file('frontend.html')
-    	return render_template('frontend.html')
+	return render_template('frontend.html')
     
 @app.route('/sendendpoint', methods=['POST'])
 def processSubscriptionRequest():
 	data = request.json
-        print "Data : ", data
+	print "Data : ", data
 	endpoint = data['Endpoint']
-        relevant_objects = data['Objects']
-
-        print relevant_objects
-        
+	#subscriptionId= data['SubscriptionId']
+    
+	print endpoint
+	#print subscriptionId
 	if endpoint.startswith('https://android.googleapis.com/gcm/send'):
-        	endpointParts = endpoint.split('/')
+
+		endpointParts = endpoint.split('/')
 		registrationId = endpointParts[len(endpointParts) - 1]
-                print "Registration ID: ", registrationId
+		print "Registration ID: ", registrationId
 		endpoint = 'https://android.googleapis.com/gcm/send'
                 
+<<<<<<< HEAD
 
+=======
+>>>>>>> b46eff3a91579e1dd74323793a00727a72461050
         retrieve_regid = Subscriptions.objects(endpoint = registrationId)
 
         if(len(retrieve_regid) == 0):
@@ -72,19 +75,33 @@ def UnsubscribeFromServer():
         return jsonify({"Response" : "abc"})
 
 
-@app.route('/sendgcm',methods=['POST'])
+@app.route('/sendgcm',methods=['GET','POST'])
 def processGCMRequest():
     
     apiKey="AIzaSyBsyNVM0bH--tz4GvUmy7xagjTgfwwZKGg"
     
     gcm = GCM(apiKey)
-    data ={"Message":"this is a notification"}
-    regIdList = [x.endpoint for x in Subscriptions.objects()]
-    print "RegIdList = ", regIdList
+
+    data ={"title":"New Notification","body":"Message Body "}
+    
     response = gcm.json_request(registration_ids=regIdList,data=data)
         
     return jsonify({"Response":"abc"})
 
+
+@app.route('/sendrequest',methods=['GET', 'POST'])
+def processNotificationRequest():
+
+	data = request.json
+
+	return jsonify({
+
+			"title":"This is title",
+			"body":"This is body",
+			"icon":"notifications.png",
+			"tag":"simple-push-demo-notification-tag",
+			"url":"https://www.google.com"		
+		})
 
 if __name__=="__main__":
 	app.run(debug = True)
