@@ -45,7 +45,8 @@ function initialiseState(){
             
             var pushButton = document.querySelector('#push-Button');
             pushButton.disabled = false;
-            
+
+	    console.log(subscription)
             if(!subscription){
                 return;
             }
@@ -84,42 +85,44 @@ serviceWorkerRegistration.pushManager.subscribe({userVisibleOnly:true}).then(fun
             }else{
                 console.error('Unable to push notification',err);
                 pushButton.disabled = false;
-                pushButton.textContent = 'Enable Push Notifications';
+                pushButton.textContent = 'Enable Push Messages';
             }
         });
     });
-    
 }
 
 
 function unsubscribe(){
-    
-    var pushButton = document.querySelector('#push-Button');
-    pushButton.disabled = true;
-    
+    console.log('In unsubscribe');
+	var pushButton = document.querySelector('#push-Button');
+	pushButton.disabled = true;
+
     navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
-        serviceWorkerRegistration.pushManager.getSubscription().then(function(pushSubscription){
-            if(!pushSubscription){
-                pushEnabled = false;
-                pushButton.disabled = false;
-                pushButton.textContent = 'Enable push notifications';
-                return;
-            }
-            
-            var subscriptionId = pushSubscription.subscriptionId;
-            
-            pushSubscription.unsubscribe().then(function(successful){
-                pushButton.disabled = false;
-                pushButton.textContent = 'Enable push notifications';
-                
-                pushEnabled = false;
-            }).catch(function(e){
-                
-                console.log('Unsubscription error:',e);
-                
-                pushButton.disabled = false;
-                pushButton.textContent = 'Enable push notifications';
-            });
+	    serviceWorkerRegistration.pushManager.getSubscription().then(function(pushSubscription){
+		if(!pushSubscription){
+		    pushEnabled = false;
+		    pushButton.disabled = false;
+		    pushButton.textContent = 'Enable push notifications';
+		    return;
+		}
+
+		var subscriptionId = pushSubscription.subscriptionId;
+
+		pushSubscription.unsubscribe().then(function(successful){
+		    pushButton.disabled = false;
+		    pushButton.textContent = 'Enable push notifications';
+
+		    pushEnabled = false;
+
+		    sendUnsubscriptionToServer(pushSubscription);
+
+		}).catch(function(e){
+
+		    console.log('Unsubscription error:',e);
+
+		    pushButton.disabled = false;
+		    pushButton.textContent = 'Enable push notifications';
+        });
             
         }).catch(function(e){
            console.error('Error thrown while unsubscribing from push messaging');
@@ -144,6 +147,25 @@ function sendSubscriptionToServer(subscription){
         error:function(error){
             return false;
         }
+    });
+}
+
+function sendUnsubscriptionToServer(subscription){
+    $.ajax({
+	url: '/unsubscribe',
+	data: JSON.stringify({"Endpoint": subscription.endpoint}),
+	type: 'POST',
+	dataType: 'json',
+	contentType: 'application/json',
+	accepts: 'application/json',
+
+	success:function(response){
+	    return true;
+	},
+
+	error:function(error){
+	    return false;
+	}
     });
 }
 
