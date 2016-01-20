@@ -25,6 +25,8 @@ window.addEventListener('load',function(){
     }
 });
 
+
+
 function initialiseState(){
     
     if(!('showNotification' in ServiceWorkerRegistration.prototype )){
@@ -48,7 +50,7 @@ function initialiseState(){
                 return;
             }
             
-            sendSubscriptionToServer(subscription);
+            //sendSubscriptionToServer(subscription);
             
             pushButton.textContent = 'Disable Push Notifications';
             pushEnabled = true;
@@ -59,13 +61,14 @@ function initialiseState(){
 }
 
 function subscribe(){
-    console.log('In subscribe');
+    
     var pushButton = document.querySelector('#push-Button');
     
     pushButton.disabled = true;
-        navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
-        serviceWorkerRegistration.pushManager.subscribe({userVisibleOnly:true}).then(function(subscription){
-                        
+           
+navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
+       
+serviceWorkerRegistration.pushManager.subscribe({userVisibleOnly:true}).then(function(subscription){
             pushEnabled = true;
             pushButton.textContent = 'Disable Push Notifications';
             pushButton.disabled = false;
@@ -81,7 +84,7 @@ function subscribe(){
             }else{
                 console.error('Unable to push notification',err);
                 pushButton.disabled = false;
-                pushButton.textContent = 'Enable Push Messages';
+                pushButton.textContent = 'Enable Push Notifications';
             }
         });
     });
@@ -90,7 +93,7 @@ function subscribe(){
 
 
 function unsubscribe(){
-    console.log('In unsubscribe');
+    
     var pushButton = document.querySelector('#push-Button');
     pushButton.disabled = true;
     
@@ -125,7 +128,7 @@ function unsubscribe(){
 }
 
 function sendSubscriptionToServer(subscription){
-    
+        
     $.ajax({
         url: '/sendendpoint',
         data: JSON.stringify({"Endpoint":subscription.endpoint}),
@@ -148,12 +151,8 @@ function sendGCMRequest(){
     
     $.ajax({
         url: '/sendgcm',
-//        data: JSON.stringify({"Endpoint":subscription.endpoint}),
         type:'POST',
-//        dataType:'json',
-//        contentType:'application/json',
-//        accepts:'application/json',
-        
+
         success:function(response){
             return true;
         },
