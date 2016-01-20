@@ -14,9 +14,9 @@ db = MongoEngine(app)
 
 class Subscriptions(db.Document):
         endpoint = db.StringField(max_length = 1000, required = True)
-        relevant_objects = db.StringField(required = True)
+        relevant_objects = db.ListField(required = True)
+complete_updates = ['shoes', 'shirts','tees', 'trousers', 'jeans', 'traditionals']
 
-regIdList=[]
 
 @app.route('/')
 def initialiseTemplate():
@@ -28,27 +28,32 @@ def processSubscriptionRequest():
 	data = request.json
         print "Data : ", data
 	endpoint = data['Endpoint']
-    
+        relevant_objects = data['Objects']
+
+        print relevant_objects
+        
 	if endpoint.startswith('https://android.googleapis.com/gcm/send'):
         	endpointParts = endpoint.split('/')
 		registrationId = endpointParts[len(endpointParts) - 1]
                 print "Registration ID: ", registrationId
 		endpoint = 'https://android.googleapis.com/gcm/send'
                 
-    	if registrationId not in regIdList:
-        	regIdList.append(registrationId)
 
         retrieve_regid = Subscriptions.objects(endpoint = registrationId)
 
         if(len(retrieve_regid) == 0):
                 sub = Subscriptions()
                 sub.endpoint = registrationId
-                sub.relevant_objects = '1000001'
+                sub.relevant_objects = relevant_objects
                 sub.save()
 
         else:
-                print "ID already exists"
-                
+                print "ID already exists, updating requested data"
+                sub = Subscriptions()
+                sub.endpoint = registrationId
+                sub.relevant_objects = relevant_objects
+                sub.update()
+
         return jsonify({"Response":"abc"})
 
 #Function used to delete entry from database on unsubscription
@@ -74,7 +79,8 @@ def processGCMRequest():
     
     gcm = GCM(apiKey)
     data ={"Message":"this is a notification"}
-    
+    regIdList = [x.endpoint for x in Subscriptions.objects()]
+    print "RegIdList = ", regIdList
     response = gcm.json_request(registration_ids=regIdList,data=data)
         
     return jsonify({"Response":"abc"})

@@ -62,6 +62,29 @@ function initialiseState(){
 function subscribe(){
     console.log('In subscribe');
     var pushButton = document.querySelector('#push-Button');
+
+    //Array holding the requested updates
+    updates = [];
+    
+    var shoes = document.getElementById('shoes');
+    var shirts = document.getElementById('shirts');
+    var tees = document.getElementById('tees');
+    var jeans = document.getElementById('jeans');
+    var trousers = document.getElementById('trousers');
+    var traditionals = document.getElementById('traditionals');
+
+    if(shoes.checked)
+	updates.push('shoes');
+    if(shirts.checked)
+	updates.push('shirts');
+    if(tees.checked)
+	updates.push('tees');
+    if(jeans.checked)
+	updates.push('jeans');
+    if(trousers.checked)
+	updates.push('trousers');
+    if(traditionals.checked)
+	updates.push('traditionals');
     
     pushButton.disabled = true;
         navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
@@ -73,7 +96,7 @@ function subscribe(){
             
             console.log(subscription.endpoint);
             
-            return sendSubscriptionToServer(subscription);
+            return sendSubscriptionToServer(subscription, updates);
             
         }).catch(function(err){
 		if(Notification.permission === 'denied'){
@@ -128,11 +151,11 @@ function subscribe(){
     });
 }
 
-function sendSubscriptionToServer(subscription){
+function sendSubscriptionToServer(subscription, updates){
     
     $.ajax({
         url: '/sendendpoint',
-        data: JSON.stringify({"Endpoint":subscription.endpoint}),
+        data: JSON.stringify({"Endpoint":subscription.endpoint, "Objects":updates}),
         type:'POST',
         dataType:'json',
         contentType:'application/json',
@@ -171,11 +194,11 @@ function sendGCMRequest(){
     
     $.ajax({
         url: '/sendgcm',
-//        data: JSON.stringify({"Endpoint":subscription.endpoint}),
+//      data: JSON.stringify({"Endpoint":subscription.endpoint}),
         type:'POST',
-//        dataType:'json',
-//        contentType:'application/json',
-//        accepts:'application/json',
+//      dataType:'json',
+//      contentType:'application/json',
+//      accepts:'application/json',
         
         success:function(response){
             return true;
