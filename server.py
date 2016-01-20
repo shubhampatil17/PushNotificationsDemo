@@ -38,10 +38,6 @@ def processSubscriptionRequest():
 		print "Registration ID: ", registrationId
 		endpoint = 'https://android.googleapis.com/gcm/send'
                 
-<<<<<<< HEAD
-
-=======
->>>>>>> b46eff3a91579e1dd74323793a00727a72461050
         retrieve_regid = Subscriptions.objects(endpoint = registrationId)
 
         if(len(retrieve_regid) == 0):

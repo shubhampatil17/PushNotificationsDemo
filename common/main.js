@@ -12,8 +12,6 @@ window.addEventListener('load',function(){
         }
     });
     
-    
-    
     if('serviceWorker' in navigator){
         navigator.serviceWorker.register('serviceworker.js').then(initialiseState).catch(function(err){
             console.error('Error occured in registering service worker script',err);
@@ -24,7 +22,6 @@ window.addEventListener('load',function(){
         console.warn("Service workers not supported in browser");
     }
 });
-
 
 
 function initialiseState(){
