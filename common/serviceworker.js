@@ -2,7 +2,7 @@ var title, body, icon, tag, url;
 
 self.addEventListener('push', function(event) {  
     
-    console.log('Received a push message', event);
+    console.log('Received a push event message', event);
         
     event.waitUntil(
         

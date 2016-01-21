@@ -202,30 +202,6 @@ function sendGCMRequest(){
     var notification_text = document.getElementById('notification_text').value
     console.log(tags)
 
-     $.ajax({
-	url: "/sendrequest",
-        type:'POST',
-
-	data : JSON.stringify({
-	    "notification_title" : notification_title,
-	    "notification_text" : notification_text
-	}),
-	    
-        dataType:'json',
-        contentType:'application/json',
-        accepts:'application/json',
-
-        success:function(response){
-	    return true;
-        },
-        
-        error:function(error){
-	    return false;
-	}
-
-    });
-
-    
     $.ajax({
         url: '/sendgcm',
         type:'POST',
