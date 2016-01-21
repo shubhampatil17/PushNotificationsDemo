@@ -1,9 +1,14 @@
 from flask import Flask, render_template, request, jsonify
+import requests
 from flask.ext.mongoengine import MongoEngine
 import requests
 import urllib3
 import json
 from gcm import GCM
+
+#Global variables
+notification_title = ''
+notification_text = ''
 
 app=Flask(__name__,template_folder="common",static_folder="common",static_url_path="")
 
@@ -15,6 +20,7 @@ db = MongoEngine(app)
 class Subscriptions(db.Document):
         endpoint = db.StringField(max_length = 1000, required = True)
         relevant_objects = db.ListField(required = True)
+
 complete_updates = ['shoes', 'shirts','tees', 'trousers', 'jeans', 'traditionals']
 
 
@@ -27,6 +33,7 @@ def processSubscriptionRequest():
 	data = request.json
 	print "Data : ", data
 	endpoint = data['Endpoint']
+        relevant_objects = data['Objects']
 	#subscriptionId= data['SubscriptionId']
     
 	print endpoint
@@ -43,15 +50,15 @@ def processSubscriptionRequest():
         if(len(retrieve_regid) == 0):
                 sub = Subscriptions()
                 sub.endpoint = registrationId
-                sub.relevant_objects = relevant_objects
+                if(len(relevant_objects) == 0):
+                        sub.relevant_objects = []
+                else:
+                        sub.relevant_objects = relevant_objects
                 sub.save()
 
         else:
-                print "ID already exists, updating requested data"
-                sub = Subscriptions()
-                sub.endpoint = registrationId
-                sub.relevant_objects = relevant_objects
-                sub.update()
+                print "ID already exists, Update requested data"
+                return render_template(update_requests.html, relevant_objects = retrieve_regid.relevant_objects)
 
         return jsonify({"Response":"abc"})
 
@@ -77,23 +84,38 @@ def processGCMRequest():
     apiKey="AIzaSyBsyNVM0bH--tz4GvUmy7xagjTgfwwZKGg"
     
     gcm = GCM(apiKey)
-
-    data ={"title":"New Notification","body":"Message Body "}
     
+    data = request.json
+
+    global notification_title
+    notification_title = data['notification_title']
+    global notification_text
+    notification_text = data['notification_text']
+    tags = data['tags']
+
+    print "Title: ", notification_title
+
+    all_entries = Subscriptions.objects.all()
+    regIdList = []
+    for x in all_entries:
+           # print "Testing", x.endpoint, x.relevant_objects
+            if(set(tags).issubset(set(x.relevant_objects))):
+                    regIdList.append(x.endpoint)
+
+    #regIdList = [x.endpoint for x in all_entries if len(list((set(tags) - set(x.relevant_objects))) != 0 ]
+    print regIdList
     response = gcm.json_request(registration_ids=regIdList,data=data)
-        
-    return jsonify({"Response":"abc"})
+   # processNotificationRequest(notification_title, notification_text)    
+    return jsonify({"notification_title" : notification_title, "notification_text" : notification_text})
 
 
-@app.route('/sendrequest',methods=['GET', 'POST'])
+@app.route('/sendrequest', methods=['GET', 'POST'])
 def processNotificationRequest():
 
-	data = request.json
+        return jsonify({
 
-	return jsonify({
-
-			"title":"This is title",
-			"body":"This is body",
+			"title": notification_title,
+			"body": notification_text,
 			"icon":"notifications.png",
 			"tag":"simple-push-demo-notification-tag",
 			"url":"https://www.google.com"		
