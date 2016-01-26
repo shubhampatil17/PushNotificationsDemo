@@ -2,7 +2,7 @@ var title, body, icon, tag, url;
 
 self.addEventListener('push', function(event) {  
     
-    console.log('Received a push message', event);
+    console.log('Received a push event message', event);
         
     event.waitUntil(
         
@@ -19,6 +19,8 @@ self.addEventListener('push', function(event) {
                 icon = data['icon'];
                 tag = data['tag'];
                 url = data['url'];
+                
+                console.log(title,body);
                 
                 self.registration.showNotification(title,{
                     body: body,
