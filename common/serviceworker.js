@@ -5,8 +5,20 @@ self.addEventListener('push', function(event) {
     console.log('Received a push event message', event);
         
     event.waitUntil(
-        
-        fetch("/sendrequest").then(function(response){
+        self.registration.pushManager.getSubscription().then(function(subscription){
+     
+            if(!subscription){
+                return;
+            }
+     
+            fetch("/sendrequest",{
+                method:'post',
+                headers:{
+                    "Content-type":"application/json"
+                },
+                
+                body: JSON.stringify({"Endpoint":subscription.endpoint})
+            }).then(function(response){
             
             if(response.status !== 200){
                 console.log("Error");
@@ -28,8 +40,10 @@ self.addEventListener('push', function(event) {
                     tag: tag
                 })
             });
+        })    
+            
         })
-    );
+    )
 });
 
 

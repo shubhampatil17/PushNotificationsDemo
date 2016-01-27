@@ -44,10 +44,11 @@ function initialiseState(){
             pushButton.disabled = false;
 
             if(!subscription){
+                document.getElementById("userDiv").style.display="none";
                 return;
             }
             
-            
+            document.getElementById("userDiv").style.display="block";
             pushButton.textContent = 'Disable Push Notifications';
             pushEnabled = true;
 	    
@@ -80,6 +81,30 @@ function initialiseState(){
                 }
             });
 
+            $.ajax({
+
+                url: '/getNotifications',
+                type:'POST',
+                data : JSON.stringify({"Endpoint":subscription.endpoint}),
+                dataType:'json',
+                contentType:'application/json',
+                accepts:'application/json',
+
+                success:function(response){
+                    
+                    //for (var notification in response.Notifications){
+                    //    console.log(notification.notificationTitle);
+                    //    console.log(notification.notificationBody);
+                    //}
+                    console.log(response.Notifications[0].notificationTitle);
+                    console.log(response.Notifications[0].notificationBody);
+                    
+                },
+
+                error:function(error){
+                    return false;
+                }
+            });
 	    
         }).catch(function(err){
             console.warn('Error during subscription : ',err);
@@ -120,7 +145,9 @@ function subscribe(){
             
             console.log(subscription.endpoint);
             
-            return sendSubscriptionToServer(subscription.endpoint, subscribedItems);
+            sendSubscriptionToServer(subscription.endpoint, subscribedItems);
+            
+            document.getElementById("userDiv").style.display = "block";
             
         }).catch(function(err){
             if(Notification.permission === 'denied'){
@@ -157,6 +184,8 @@ function unsubscribe(){
 		    pushButton.textContent = 'Enable Push Notifications';
 
 		    pushEnabled = false;
+            
+            document.getElementById("userDiv").style.display="none";
 
 		    sendUnsubscriptionToServer(pushSubscription.endpoint);
 
