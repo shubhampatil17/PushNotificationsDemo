@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<html ng-app="pushNotifications">
+    <head>
+        <title>Push Notifications</title>
+        <link rel="manifest" href="manifest.json">        
+        
+        <script src="//code.jquery.com/jquery-1.12.0.min.js"></script>
+        
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular.min.js"></script>
+        
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.5/css/materialize.min.css">
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.5/js/materialize.min.js"></script>
+            
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        
+    </head>
+    
+    <body ng-controller="pushNotController">
+        
+        <div class="row">
+            <div class="col l6">
+                <div class="card">
+                    <div class="card-content">
+                        <blockquote class="card-title blue-text">Publisher</blockquote>
+                        
+                        <div class="row">
+                            <div class="col l4">
+                                <p style="font-size:large">Tags</p><br>
+
+                                <p>
+                                    <input type="checkbox" id="pub_shoes" class="tag" name="Shoes">
+                                    <label for="pub_shoes">Shoes</label>
+                                </p><br>
+
+                                <p>
+                                    <input type="checkbox" id="pub_shirts" class="tag" name="Shirts">
+                                    <label for="pub_shirts">Shirts</label>
+                                </p><br>
+
+                                <p>
+                                    <input type="checkbox" id="pub_tees" class="tag" name="Tees">
+                                    <label for="pub_tees">Tees</label>
+                                </p><br>
+
+                                <p>
+                                    <input type="checkbox" id="pub_jeans" class="tag" name="Jeans">
+                                    <label for="pub_jeans">Jeans</label>
+                                </p><br>
+
+                                <p>
+                                    <input type="checkbox" id="pub_trousers" class="tag" name="Trousers">
+                                    <label for="pub_trousers">Trousers</label>
+                                </p><br>
+
+                                <p>
+                                    <input type="checkbox" id="pub_traditionals" class="tag" name="Traditionals">
+                                    <label for="pub_traditionals">Traditionals</label>
+                                </p><br>                            
+                            </div>
+                            
+                            <div class="col l8">
+                                
+                                <p style="font-size:large" class="center">Make and Send Notifications</p><br>
+                                
+                                <div class="row">
+                                    <form class="col l12">
+                                        <div class="row">
+                                            <div class="input-field col l12">
+                                                <i class="material-icons prefix">edit</i>
+                                                <input type="text" class="validate" id="notificationTitle">
+                                                
+                                                <label for="notificationTitle">Notification Title</label>
+                                                <br>
+                                            </div>
+                                            <div class="input-field col l12">
+                                                <i class="material-icons prefix">edit</i>
+                                                
+                                                <input type="text" id="notificationBody" class="validate">
+                                                
+                                                <label for="notificationBody">Notification Body</label><br><br>
+                                            </div>
+                                            
+                                            <div class="col l12 center">
+                                                <button type="submit" class="btn-floating waves-effect waves-light btn-large tooltipped" data-position="bottom" data-delay="50" data-tooltip="Click To Send Notification" ng-click="sendGCMRequest()"><i class="material-icons">send</i></button>
+                                            </div>
+                                        </div>
+                                    
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        
+                    </div>
+                
+                </div>
+            </div>
+            
+            <div class="col l6">
+                <div class="card">
+                    <div class="card-content">
+                        <blockquote class="card-title  blue-text">Subscriber</blockquote>
+                        
+                        <div class="row">
+                            <div class="col l4" id="subTagBox">
+                                <p style="font-size:large">Notify me for ...</p><br>
+
+                                <p>
+                                    <input type="checkbox" id="Shoes" class="item" name="Shoes" ng-click="sendUpdatedItems()">
+                                    <label for="Shoes">Shoes</label>
+                                </p><br>
+
+                                <p>
+                                    <input type="checkbox" id="Shirts" class="item" name="Shirts" ng-click="sendUpdatedItems()">
+                                    <label for="Shirts">Shirts</label>
+                                </p><br>
+
+                                <p>
+                                    <input type="checkbox" id="Tees" class="item" name="Tees" ng-click="sendUpdatedItems()">
+                                    <label for="Tees">Tees</label>
+                                </p><br>
+
+                                <p>
+                                    <input type="checkbox" id="Jeans" class="item" name="Jeans" ng-click="sendUpdatedItems()">
+                                    <label for="Jeans">Jeans</label>
+                                </p><br>
+
+                                <p>
+                                    <input type="checkbox" id="Trousers" class="item" name="Trousers" ng-click="sendUpdatedItems()">
+                                    <label for="Trousers">Trousers</label>
+                                </p><br>
+
+                                <p>
+                                    <input type="checkbox" id="Traditionals" class="item" name="Traditionals" ng-click="sendUpdatedItems()">
+                                    <label for="Traditionals">Traditionals</label>
+                                </p><br> 
+                            </div>
+                            
+                            <div class="col l8">
+                                <div class="row">
+                                    <div class="col l12">
+                                        <div class="switch center">
+                                            Push Notification Subscription<br>
+                                            <label>
+                                                Off
+                                                <input type="checkbox" id="subscribeBtn">
+                                                <span class="lever"></span>
+                                                On
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row" id="allowPushBtnBox">
+                                    <div class="col l12">
+                                        <div class="switch center">
+                                            Allow Notifications<br>
+                                            <label>
+                                                Off
+                                                <input type="checkbox" id="allowPushBtn" ng-click = "sendUpdatedItems()">
+                                                <span class="lever"></span>
+                                                On
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row" id="subUpdateButton">
+                                    <div class="col l12">
+                                        <div class="fixed-action-btn" style="position:absolute;">
+                                            <a class="btn-floating btn-large"><i class="material-icons">mode_edit</i></a>
+                                            
+                                            <ul>
+                                                <!--<li><a class="btn-floating tooltipped" data-position="left" data-delay="50" data-tooltip="Save Subscription"><i class="material-icons">save</i></a></li>-->
+
+                                                <li><a class="btn-floating tooltipped" data-position="left" data-delay="50" data-tooltip="Update Subscription"><i class="material-icons red">update</i></a></li>
+                                                
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        </div>
+        
+        <footer class="page-footer">
+            <div class="container row center">
+                <div class="col l12">
+                    <!--<span>Visit our Github profiles :</span>-->
+                    <a href="https://github.com/shubhampatil17" target="_blank"><img src="github.png" class="circle responsive-img tooltipped" data-position="top" data-delay="50" data-tooltip="Shubham's Github" width="40" height="40"></a>
+                    <a href="https://github.com/Raunaqq" target="_blank"><img src="github.png" class="circle responsive-img tooltipped" data-position="top" data-delay="50" data-tooltip="Raunaq's Github" width="40" height="40"></a>
+                </div>
+            </div>
+            <div class="footer-copyright">
+                <div class="container center">
+                    Made with <i class="material-icons">favorite</i> using <a href="http://www.materializecss.com" target="_blank">Materialize</a>
+                </div>
+                
+                <div class="container">
+                
+                </div>
+            </div>
+        </footer>
+        
+        <script type="text/javascript" src="main.js"></script>
+    </body>
+    
+
+</html>

@@ -1,339 +1,286 @@
-var pushEnabled = false;     //global variable to handle subscription
+var app = angular.module("pushNotifications",[]).controller("pushNotController", function($scope, $http, $window){
 
-window.addEventListener('load',function(){
-    var pushButton = document.querySelector('#pushEnable-Button');
+    $scope.pushEnabled = false;
 
-    pushButton.addEventListener('click',function(){
+    $window.addEventListener("load",function(){
+        console.log("Loading window ...");
+        var subscribeButton = $("#subscribeBtn");
         
-        if(pushEnabled){
-            unsubscribe();  //unsubscribe if already subscribed
+        
+        subscribeButton.change(function(){
+            
+            if($scope.pushEnabled){
+                $scope.unsubscribe();
+            }else{
+                $scope.subscribe();
+            }
+        });
+        
+        if('serviceWorker' in navigator){
+            console.log("Service workers are supported in browser");
+            navigator.serviceWorker.register("serviceworker.js").then($scope.initialiseState).catch(function(err){
+                console.error("Error occured in registering service worker script :",err);
+            });
+            
         }else{
-            subscribe();    //else new subscription
+            console.warn("Service workers not supported in browser");
         }
     });
     
-    if('serviceWorker' in navigator){
-        navigator.serviceWorker.register('serviceworker.js').then(initialiseState).catch(function(err){
-            console.error('Error occured in registering service worker script',err);
-        });
+    $scope.initialiseState = function(){
+        console.log("In initialise State. Service worker registered");
         
-        console.log('Service worker registered');
-    }else{
-        console.warn("Service workers not supported in browser");
-    }
-});
-
-
-function initialiseState(){
-    
-    if(!('showNotification' in ServiceWorkerRegistration.prototype )){
-        console.warn("Notifications are not supported");
-        return;
-    }
-    
-    if(Notification.permission === 'denied'){
-        console.warn("Notifications blocked by user");
-        return;
-    }
-    
- navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
+        if(!('showNotification' in ServiceWorkerRegistration.prototype)){
+            console.warn("Notifications are not supported");
+            return;
+        }
         
-        serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription){
-            
-            var pushButton = document.querySelector('#pushEnable-Button');
-            pushButton.disabled = false;
-
-            if(!subscription){
-                document.getElementById("userDiv").style.display="none";
-                return;
-            }
-            
-            document.getElementById("userDiv").style.display="block";
-            pushButton.textContent = 'Disable Push Notifications';
-            pushEnabled = true;
-	    
-            //No need to send subscription status to server when page
-            //is refreshed
-            //sendSubscriptionToServer(subscription);
-            
-            $.ajax({
-
-                url: '/getSubscriptionList',
-                type:'POST',
-                data : JSON.stringify({"Endpoint":subscription.endpoint}),
-                dataType:'json',
-                contentType:'application/json',
-                accepts:'application/json',
-
-                success:function(response){
+        if(Notification.permission == "denied"){
+            console.warn("Notifications blocked by user");
+            return;
+        }
+        
+        navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
+           serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription){
+               $("#subscribeBtn")[0].checked = false;
+               $("#allowPushBtn")[0].checked = false;
+               
+               if(!subscription){
+                   $("#subTagBox")[0].style.display = "none";
+                   $("#allowPushBtnBox")[0].style.display = "none";
+                   return;
+               }
+               
+               $("#subTagBox")[0].style.display = "block";
+               $("#allowPushBtnBox")[0].style.display = "block";
+               $("#subscribeBtn")[0].checked = true;
+               $("#allowPushBtn")[0].checked = true;
+               $scope.pushEnabled = true;
+               
+                //No need to send subscription status to server when page is refreshed
+                //sendSubscriptionToServer(subscription);
+               
+                $http({
+                    method : "POST",
+                    url : "/getSubscriptionData",
+                    data : {"Endpoint":subscription.endpoint}
+                    
+                }).then(function(response){
                     console.log(response);
                     
-                    for(var i=0;i<response.subscriptionList.length;i++){
-                        
-                        var checkboxId = response.subscriptionList[i];
+                    for(var i=0;i<response.data.subscriptionList.length;i++){
+                        var checkboxId = response.data.subscriptionList[i];
                         document.getElementById(checkboxId).checked = true;
-                        //console.log(checkboxId);
                     }
-                },
-
-                error:function(error){
-                    return false;
-                }
-            });
-
-            $.ajax({
-
-                url: '/getNotifications',
-                type:'POST',
-                data : JSON.stringify({"Endpoint":subscription.endpoint}),
-                dataType:'json',
-                contentType:'application/json',
-                accepts:'application/json',
-
-                success:function(response){
                     
-                    //for (var notification in response.Notifications){
-                    //    console.log(notification.notificationTitle);
-                    //    console.log(notification.notificationBody);
-                    //}
-                    console.log(response.Notifications[0].notificationTitle);
-                    console.log(response.Notifications[0].notificationBody);
+                    if(response.data.pushAllowed == "true"){
+                        $("#allowPushBtn")[0].checked = true;
+                    }else{
+                        $("#allowPushBtn")[0].checked = false;
+                    }
                     
-                },
-
-                error:function(error){
+                }, function(error){
                     return false;
-                }
-            });
-	    
+                });
+           }) 
         }).catch(function(err){
-            console.warn('Error during subscription : ',err);
+           console.warn("Error during subscription : ", err); 
         });
-     
-     
-    });
-}
-
-function subscribe(){
-    console.log("In subscribe ...")
-    
-    var pushButton = document.querySelector('#pushEnable-Button');
-
-    //Array holding the subscribed items.
-    //update=[]
-    subscribedItems = [];
-    
         
-    var itemList = document.getElementsByClassName("item");
-    
-    //console.log(itemList.length);
-    
-    for(var i=0;i< itemList.length;i++){
-        
-        if( itemList[i].checked){
-            subscribedItems.push(itemList[i].name);
-        }
     }
     
-    //console.log(subscribedItems);
-    
-    navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
-        serviceWorkerRegistration.pushManager.subscribe({userVisibleOnly:true}).then(function(subscription){
-            pushEnabled = true;
-            pushButton.textContent = 'Disable Push Notifications';
-            pushButton.disabled = false;
-            
-            console.log(subscription.endpoint);
-            
-            sendSubscriptionToServer(subscription.endpoint, subscribedItems);
-            
-            document.getElementById("userDiv").style.display = "block";
-            
-        }).catch(function(err){
-            if(Notification.permission === 'denied'){
-                console.warn('Permission denied ');
-                pushButton.disabled = true;
-                
-            }else{
-                console.error('Unable to push notification',err);
-                pushButton.disabled = false;
-                pushButton.textContent = 'Enable Push Notifications';
-            }
-        });
-    });
-}
-
-
-function unsubscribe(){
-    console.log('In unsubscribe ...');
-
-    var pushButton = document.querySelector('#pushEnable-Button');
-	pushButton.disabled = true;
-
-    navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
-	    serviceWorkerRegistration.pushManager.getSubscription().then(function(pushSubscription){
-		if(!pushSubscription){
-		    pushEnabled = false;
-		    pushButton.disabled = false;
-		    pushButton.textContent = 'Enable Push Notifications';
-		    return;
-		}
-
-		pushSubscription.unsubscribe().then(function(successful){
-		    pushButton.disabled = false;
-		    pushButton.textContent = 'Enable Push Notifications';
-
-		    pushEnabled = false;
-            
-            document.getElementById("userDiv").style.display="none";
-
-		    sendUnsubscriptionToServer(pushSubscription.endpoint);
-
-		}).catch(function(err){
-
-		    console.log('Unsubscription error:',err);
-
-		    pushButton.disabled = false;
-		    pushButton.textContent = 'Enable Push Notifications';
-        });
-            
-        }).catch(function(e){
-           console.error('Error thrown while unsubscribing from push messaging');
-        });
-    });
-}
-
-
-function sendGCMRequest(){
-    
-    console.log("in GCM request")
-    
-    
-    //tags holds the tags relevant to which the admin wants to send info
-    var tags = []
-    
-    var tagList = document.getElementsByClassName("tag");
-    
-    for(var i=0;i<tagList.length;i++){
+    $scope.subscribe = function(){
+        console.log("In subscribe ...")
         
-        if(tagList[i].checked){
-            tags.push(tagList[i].name);
+        //Array holding the subscribed items.
+        subscribedItems = []
+        
+        var itemList = document.getElementsByClassName("item");
+        
+        for(var i=0;i<itemList.length;i++){
+            if(itemList[i].checked){
+                subscribedItems.push(itemList[i].name);
+            }
         }
+        
+        //console.log(subscribedItems);
+        
+        navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
+            serviceWorkerRegistration.pushManager.subscribe({
+                userVisibleOnly : true
+            }).then(function(subscription){
+                
+                console.log(subscription.endpoint);
+
+                
+                var pushAllowed = "true"
+                $scope.sendSubscriptionToServer(subscription.endpoint,subscribedItems, pushAllowed )                
+            }).catch(function(err){
+                
+                if(Notification.permission == "denied"){
+                    console.warn("Permission denied");
+                }else{
+                    console.error("Unable to push notification",err);
+                    $("#subscribeBtn")[0].checked = false;
+                }
+            });
+        });
+        
     }
     
-    var notificationTitle=document.getElementById('notificationTitle').value;
-    var notificationBody=document.getElementById('notificationBody').value;
-
-    $.ajax({
-        
-        url: '/sendgcm',
-        type:'POST',
-	data : JSON.stringify({"notificationTitle" : notificationTitle, "notificationBody" : notificationBody,"tags" : tags}),
-        dataType:'json',
-        contentType:'application/json',
-        accepts:'application/json',
-
-        success:function(response){
-            return true;
-        },
-        
-        error:function(error){
-            return false;
-        }
-    });
-
-}
-
-
-function sendSubscriptionToServer(endpoint, subscribedItems){
-    $.ajax({
-        url: '/subscribe',
-        data: JSON.stringify({"Endpoint":endpoint, "subscribedItems" : subscribedItems}),
-        type:'POST',
-        dataType:'json',
-        contentType:'application/json',
-        accepts:'application/json',
-        
-        success:function(response){
-            return true;
-        },
-        
-        error:function(error){
-            return false;
-        }
-    });
-}
-
-function sendUnsubscriptionToServer(endpoint){
-    $.ajax({
-	url: '/unsubscribe',
-	data: JSON.stringify({"Endpoint":  endpoint}),
-	type: 'POST',
-	dataType: 'json',
-	contentType: 'application/json',
-	accepts: 'application/json',
-
-	success:function(response){
-	    return true;
-	},
-
-	error:function(error){
-	    return false;
-	}
-    });
-}
-
-function sendUpdatedItemsToServer(endpoint,updatedItems){
-
-    $.ajax({
-	url: '/updateSubscription',
-	data: JSON.stringify({"Endpoint":  endpoint, "updatedItems":updatedItems}),
-	type: 'POST',
-	dataType: 'json',
-	contentType: 'application/json',
-	accepts: 'application/json',
-
-	success:function(response){
-	    return true;
-	},
-
-	error:function(error){
-	    return false;
-	}
-    });
-}
-
-
-
-function sendUpdatedItems(){
-    console.log("In update subscription ...")
-    updatedItems = [];
     
-    navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
-        serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription){
-            if(!subscription){
-                pushEnabled =false;
-                pushButton.disabled = false;
-                pushButton.textContent = 'Enable Push Notifications';
-                console.error("Error : push subscription failed");            
-                return;
-                
-            }
 
-            var itemList = document.getElementsByClassName("item");
+    $scope.sendSubscriptionToServer = function(endpoint, subscribedItems, pushAllowed){
+        $http({
+            method : "POST",
+            url : "/subscribe",
+            data : {"Endpoint":endpoint,"subscribedItems": subscribedItems,"pushAllowed":pushAllowed}
+        }).then(function(response){
 
-            for(var i=0;i<itemList.length;i++){
-                if(itemList[i].checked){
-                    updatedItems.push(itemList[i].name);
-                }
-            }
-    
-            var endpoint = subscription.endpoint;
+                $scope.pushEnabled = true;
+                $("#subscribeBtn")[0].checked = true;
+                $("#allowPushBtn")[0].checked = true;
+
+                $("#subTagBox")[0].style.display = "block";
+                $("#allowPushBtnBox")[0].style.display = "block";
+                return true;
             
-            return sendUpdatedItemsToServer(endpoint,updatedItems);
-                        
-        }).catch(function(err){
-            console.log(err);
+        },function(error){
+            return false;
+        });
+    }
+    
+    
+        
+    $scope.unsubscribe = function(){
+        console.log('In unsubscribe ...');        
+        navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
+            serviceWorkerRegistration.pushManager.getSubscription().then(function(pushSubscription){
+                if(!pushSubscription){
+                    $scope.pushEnabled = false;
+                    $("#subscribeBtn")[0].checked = false;
+                    $("#subTagBox")[0].style.display = "none";
+                    $("#allowPushBtnBox")[0].style.display = "none";
+                    return;
+                }
+                
+                pushSubscription.unsubscribe().then(function(successful){
+                    $scope.sendUnsubscriptionToServer(pushSubscription.endpoint);
+                    
+                }).catch(function(err){
+                    console.error("Unsubscription error :",err);
+                    $("#subscribeBtn")[0].checked = false;
+                })
+            }).catch(function(e){
+                console.error('Error thrown while unsubscribing from push messaging');    
+            })
         })
-    });
-}
+    }
+    
+    
+
+    $scope.sendUnsubscriptionToServer = function(endpoint){
+        $http({
+            method : "POST",
+            url : "/unsubscribe",
+            data : {"Endpoint":endpoint}
+        }).then(function(response){
+
+            $("#subscribeBtn")[0].checked = false;
+
+            $scope.pushEnabled = false;
+
+            $("#subTagBox")[0].style.display = "none";
+            $("#allowPushBtnBox")[0].style.display = "none";
+
+            return true;
+            
+        },function(error){
+            return false;
+        });
+    }
+    
+    $scope.sendUpdatedItemsToServer = function(endpoint, updatedItems, pushAllowed){
+        $http({
+            method : "POST",
+            url : "/updateSubscription",
+            data : {"Endpoint":endpoint,"updatedItems":updatedItems, "pushAllowed":pushAllowed}
+            
+        }).then(function(response){
+            return true;
+        },function(error){
+            return false;
+        });
+    }
+    
+    $scope.sendUpdatedItems = function(){
+        console.log("In Update Subscription ...");
+        updatedItems = [];
+        
+        navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
+            serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription){
+                if(!subscription){
+                    $scope.pushEnabled  = false;
+                    $("#subscribeBtn")[0].checked = false;
+                    $("#subTagBox")[0].style.display = "none";
+                    $("#allowPushBtnBox")[0].style.display = "none";
+                    
+                    console.error("Error : push subscription failed");
+                    return ;
+                }
+                
+                var itemList = document.getElementsByClassName("item");
+                
+                for(var i=0;i<itemList.length;i++){
+                    if(itemList[i].checked){
+                        updatedItems.push(itemList[i].name);
+                    }
+                }
+                
+                var endpoint = subscription.endpoint;
+                
+                var pushAllowed = $("#allowPushBtn")[0].checked.toString();
+                
+                return $scope.sendUpdatedItemsToServer(endpoint, updatedItems, pushAllowed);
+                
+            }).catch(function(err){
+                console.log(err);
+            })
+        })
+    }
+
+    $scope.sendGCMRequest = function(){
+        console.log("In GCM Request");
+        
+        //tags holds the tags relevant to which the admin wants to send info
+        var tags = [];
+        var tagList = document.getElementsByClassName("tag");
+        
+        for(var i=0;i<tagList.length;i++){
+            if(tagList[i].checked){
+                tags.push(tagList[i].name);
+            }
+        }
+        
+        var notificationTitle = $("#notificationTitle")[0].value;
+        var notificationBody = $("#notificationBody")[0].value;
+        
+        if(tags.length==0 || notificationTitle=="" || notificationBody == ""){
+            
+            Materialize.toast("Error ! Something missing on Publisher's Side.", 2000, "rounded");
+            return;
+        }
+        
+        console.log(notificationBody);
+        $http({
+            method : "POST",
+            url : "/sendgcm",
+            data : {"notificationTitle":notificationTitle, "notificationBody":notificationBody,"tags":tags}
+        }).then(function(response){
+            return true;    
+        },function(error){
+            return false;
+        });
+    }
+    
+})

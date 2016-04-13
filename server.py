@@ -8,34 +8,30 @@ from gcm import GCM
 
 app=Flask(__name__,template_folder="common",static_folder="common",static_url_path="")
 
-app.config["MONGODB_SETTINGS"]={'db' : "ViralMint"}
-#app.config["SECRET_KEY"] = "K33pTh1sS3cr3t"
+app.config["MONGODB_SETTINGS"]={'db' : "PushNotificationsDB"}
 db = MongoEngine(app)
 
-#globals
-#notificationTitle =''
-#notificationBody = ''
 
 
 class Subscriptions(db.Document):
 	registrationId = db.StringField(max_length = 1000, required = True)
-	subscriptionList = db.ListField()
+	subscriptionList = db.ListField(default=[])
+	pushAllowed = db.StringField(default="true")
 
 class Notifications(db.Document):
 	notificationTitle = db.StringField(required =True)
 	notificationBody = db.StringField(max_length = 1000)
-	timestamp = db.DateTimeField(required = True)
 	registrationIds = db.ListField(db.StringField(max_length=1000))
 
 
 
 @app.route('/')
 def initialiseTemplate():
-	return render_template('frontend.html')
+	return render_template('notificationPanel.html')
     
 
-@app.route('/getSubscriptionList',methods=['POST'])
-def sendSubscriptionList():
+@app.route('/getSubscriptionData',methods=['POST'])
+def sendSubscriptionData():
 
 	data = request.json	
 	endpoint = data["Endpoint"]
@@ -49,31 +45,10 @@ def sendSubscriptionList():
 
 
 	for subscription in Subscriptions.objects(registrationId = registrationId):
-		subscriptionList = subscription.subscriptionList		
+		subscriptionList = subscription.subscriptionList
+		pushAllowed = subscription.pushAllowed		
 
-	return jsonify({"subscriptionList" : subscriptionList})
-
-
-@app.route('/updateSubscription',methods=['POST'])
-def updateSubscriptionList():
-
-	data = request.json
-
-	endpoint = data["Endpoint"]
-	updatedList = data["updatedItems"]
-
-	if endpoint.startswith('https://android.googleapis.com/gcm/send'):
-		endpointParts = endpoint.split('/')
-		registrationId = endpointParts[len(endpointParts) - 1]
-	else:
-		registrationId = endpoint
-
-
-	for subscription in Subscriptions.objects(registrationId = registrationId):
-		subscription.subscriptionList = updatedList
-		subscription.save()
-
-	return jsonify({"Response":"success"})
+	return jsonify({"subscriptionList" : subscriptionList, "pushAllowed":pushAllowed})
 
 
 @app.route('/subscribe', methods=['POST'])
@@ -83,11 +58,7 @@ def processSubscriptionRequest():
 
 	endpoint = data["Endpoint"]
 	subscriptionList = data["subscribedItems"]
-	#subscriptionId= data['SubscriptionId']
-    
-	#print subscriptionId
-	#print endpoint
-	#print subscriptionList
+	pushAllowed = data["pushAllowed"]
 
 	if endpoint.startswith('https://android.googleapis.com/gcm/send'):
 		endpointParts = endpoint.split('/')
@@ -102,6 +73,7 @@ def processSubscriptionRequest():
 
 	subscription.registrationId = registrationId
 	subscription.subscriptionList = subscriptionList
+	subscription.pushAllowed = pushAllowed
 	subscription.save()
 
 	return jsonify({"Response":"success"})
@@ -111,13 +83,11 @@ def processSubscriptionRequest():
 @app.route('/unsubscribe', methods = ['POST'])
 def unsubscribeFromServer():
 	data = request.json
-	#print "Data for unsubscription: ", data
 	endpoint = data['Endpoint']
 
 	if endpoint.startswith('https://android.googleapis.com/gcm/send'):
 		endpointParts = endpoint.split('/')
 		registrationId = endpointParts[len(endpointParts) - 1]
-		#print "Registration ID (delete): ", registrationId
 		endpoint = 'https://android.googleapis.com/gcm/send'
 	else:
 		registrationId = endpoint
@@ -128,30 +98,48 @@ def unsubscribeFromServer():
 	return jsonify({"Response" : "success"})
 
 
+@app.route('/updateSubscription',methods=['POST'])
+def updateSubscriptionList():
+
+	data = request.json
+
+	endpoint = data["Endpoint"]
+	updatedList = data["updatedItems"]
+	pushAllowed = data["pushAllowed"]
+
+	if endpoint.startswith('https://android.googleapis.com/gcm/send'):
+		endpointParts = endpoint.split('/')
+		registrationId = endpointParts[len(endpointParts) - 1]
+	else:
+		registrationId = endpoint
+
+
+	for subscription in Subscriptions.objects(registrationId = registrationId):
+		subscription.subscriptionList = updatedList
+		subscription.pushAllowed = pushAllowed
+		subscription.save()
+
+	return jsonify({"Response":"success"})
+
 @app.route('/sendgcm',methods=['POST'])
 def processGCMRequest():
     
-    apiKey="AIzaSyBsyNVM0bH--tz4GvUmy7xagjTgfwwZKGg"
+    apiKey="AIzaSyDTJukW0BARTSXHRiWPCt8y_e17A9PuYfg"
     
     gcm = GCM(apiKey)
     
     data = request.json
 
-    #global notificationTitle
-    #global notificationBody
-
     notificationTitle = data['notificationTitle']
     notificationBody = data['notificationBody']
     tags = data['tags']
-
-    #print "Title: ", notificationTitle
 
     allSubscriptions = Subscriptions.objects.all()
 
     regIdList = []
 
     for subscription in allSubscriptions:
-    	if( len(set(tags).intersection(set(subscription.subscriptionList)))):
+    	if( len(set(tags).intersection(set(subscription.subscriptionList))) and subscription.pushAllowed == "true"):
     		regIdList.append(subscription.registrationId)
 
 
@@ -160,13 +148,12 @@ def processGCMRequest():
 
 	    newNotification.notificationTitle = notificationTitle
 	    newNotification.notificationBody = notificationBody
-	    newNotification.timestamp = datetime.now()
 	    newNotification.registrationIds = regIdList
 	    newNotification.save()
+	
+	    response = gcm.json_request(registration_ids=regIdList,data=data)
 
-    #print regIdList
 
-    response = gcm.json_request(registration_ids=regIdList,data=data)
     return jsonify({"notification_title" : notificationTitle, "notification_text" : notificationBody})
 
 
@@ -191,28 +178,16 @@ def processNotificationRequest():
 	notificationTitle = notification.notificationTitle
 	notificationBody = notification.notificationBody
 
-	#print notification.notificationTitle
-	#print notification.notificationBody
-	#notification = Notifications.objects(registrationIds__contains = registrationId).last()
-
-	#for notification in Notifications.objects(registrationIds__contains = registrationId):
-	#	print notification.notificationTitle
-	#	print notification.notificationBody
-
-
-	#global notificationTitle
-	#global notificationBody
-
-	#print notificationTitle
-	#print notificationBody
+	notificationList.delete()
 
 	return jsonify({
 		"title": notificationTitle,
 		"body": notificationBody,
 		"icon":"notifications.png",
 		"tag":"simple-push-demo-notification-tag",
-		"url":"https://www.google.com"		
+		"url":"https://github.com/shubhampatil17"		
 	})
+
 
 @app.route('/getNotifications',methods=['POST'])
 def getNotificationList():
@@ -238,3 +213,10 @@ if __name__=="__main__":
 	app.run(host="0.0.0.0", debug = True)
     
     
+'''
+1) Delete endpoints from notification table when unsubscribed from server
+2) push all notifications in the user panel on front end
+3) Seperate user panel and admin panel
+4) Host on Heroku.
+5) Introduce Bootstrap and Materialize to enrich GUI.
+'''
