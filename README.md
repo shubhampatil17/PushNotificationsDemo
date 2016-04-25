@@ -1,2 +1,2 @@
 # PushNotificationsDemo
-Implementation of Service Worker in JavaScript
+The app is called "NotifyMe". Implementation of Service Worker in JavaScript.
